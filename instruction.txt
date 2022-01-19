@@ -1,0 +1,104 @@
+## 1. Bring up d435i camera
+
+> $ roslaunch realsense2_camera rs_camera.launch enable_infra1:=true enable_infra2:=true unite_imu_method:=copy enable_gyro:=true enable_accel:=true enable_sync:=true align_depth:=true enable_pointcloud:=true **filter:=pointcloud**
+
+> $ roslaunch realsense2_camera rs_camera.launch enable_infra1:=true enable_infra2:=true unite_imu_method:=copy enable_gyro:=true enable_accel:=true enable_sync:=true align_depth:=true enable_pointcloud:=true gyro_fps:=200 accel_fps:=250 enable_imu:=true
+
+**If imu topic keeps stopping change unite_imu_method to "copy"**
+
+> $ rosrun imu_filter_madgwick imu_filter_node _use_mag:=false _publish_tf:=false _world_frame:="enu" /imu/data_raw:=/camera/imu  /imu/data:=/rtabmap/imu
+
+**Check $ rostopic list to ensure that all camera and imu topics are being published**
+
+## 2. Bring up RPLidar A2
+
+**Check the authority of rplidar's serial-port** 
+
+> $ ls -l /dev |grep ttyUSB
+
+**Add the authority of write: (such as /dev/ttyUSB0)**
+
+> $ sudo chmod 666 /dev/ttyUSB0
+
+> $ roslaunch rplidar_ros rplidar.launch
+
+**Check if the scan topic is "/scan", if not, change the topic in all launch file**
+
+## 3. Publish Transform
+
+**Check the frame_id of camera and lidar**
+
+> $ rosrun rqt_tf_tree rqt_tf_tree
+
+**Publish transform by adding static transform publisher of sensor about base_link in launchfile**
+
+**Check again if tf_tree is correct**
+
+## 4. Turn on RTABMAP
+
+**RGBD-Odometry**
+
+> $ roslaunch rtabmap_ros SuperR_RGBD_mapping.launch rtabmap_args:="--delete_db_on_start" rviz:=true rtabmapviz:=false
+
+**Stereo-Odometry**
+
+> $ roslaunch rtabmap_ros SuperR_STEREO_mapping.launch rtabmap_args:="--delete_db_on_start" rviz:=true rtabmapviz:=false
+
+**Sensor_Fusion**
+
+> $ roslaunch rtabmap_ros SuperR_SensorFusion(RGB+IMU)_VO_approach.launch rtabmap_args:="--delete_db_on_start" 
+or 
+  $ SuperR_SensorFusion_STEREO+IMU_VIO_approach.launch rtabmap_args:="--delete_db_on_start"
+
+> $ rviz
+
+## 5. Test navigation
+
+**Tune param of config**
+> $ roslaunch rtabmap_ros SuperR_navigation.launch
+**With exploration**
+
+**With pre-built map**
+
+## 6. Arduino controller bring-up
+
+First, execute this code
+> $ sudo chmod a+rw /dev/ttyUSB1
+
+then, upload the arduino code.
+
+Execute python code:
+> $ rosrun coscup_follow_up circle_turtle.py
+
+Execute arduino code:
+> $ rosrun rosserial_python serial_node.py /dev/ttyUSB1
+
+
+teleop:
+> $ rosrun teleop_twist_keyboard teleop_twist_keyboard.py
+
+
+list port
+> $ ls -l /dev |grep ttyUSB
+
+
+## others
+
+1. Realsense Viewer
+> $ realsense-viewer
+
+## if the database is corrupted and need repairment
+
+
+> $ rtabmap-recovery ~/.ros/rtabmap.db
+
+
+## Run VINS-Fusion
+
+> $ rosrun vins vins_node ~/catkin_ws/src/VINS-Fusion/config/realsense_d435i/realsense_stereo_imu_config.yaml
+
+> $ rosrun loop_fusion loop_fusion_node ~/catkin_ws/src/VINS-Fusion/config/realsense_d435i/realsense_stereo_imu_config.yaml
+
+> $ roslaunch rtabmap_ros SuperR_STEREO_mapping.launch rtabmap_args:="--Grid/MacObstacleHeight 1.0 Grid/MaxGroundAngle 50" rviz:=true rtabmapviz:=false localization:=true
+
+
